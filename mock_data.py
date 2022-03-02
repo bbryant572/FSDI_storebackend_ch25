@@ -100,4 +100,4 @@ catalog = [
         "price": 134.32,
         "category": "dart board",
     }
-],
+]

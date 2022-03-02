@@ -1,11 +1,15 @@
+
 from flask import Flask, abort, request
 from mock_data import catalog
 import json
 from about_me import me, test
 import random
+from flask_cors import CORS
+from config import db
 
 # create the server/app
 app = Flask("server")
+CORS(app)
 
 
 @app.route("/myaddress")
@@ -38,7 +42,14 @@ def test():
 
 @app.route("/api/catalog")
 def get_catalog():
-    return json.dumps(catalog)
+
+    cursor = db.products.find({})
+    results = []
+    for prod in cursor:
+        prod["_id"] = str(prod["_id"])
+        results.append(prod)
+
+    return json.dumps(results)
 
 
 @app.route("/api/catalog", methods=["POST"])
@@ -60,15 +71,21 @@ def save_product():
     if not (product["price"]) >= 0:
         return abort(400, "Price must be greater than free.")
 
-    product["_id"] = random.randint(10000, 50000)
-    catalog.append(product)
+    db.products.insert_one(product)
+
+    product["_id"] = str(product["_id"])
+
     return json.dumps(product)
 
 
 @app.route("/api/catalog/count")
 def catalog_length():
-    count = len(catalog)
-    return json.dumps(count)
+    cursor = db.products.find({})
+    count = 0
+    for prod in cursor:
+        count += 1
+
+    json.dumps(count)
 
 
 @app.route("/api/catalog/sum")
@@ -101,13 +118,13 @@ def most_expensive():
 
 
 @app.route("/api/categories")
-def categories():
+def categories(category):
 
+    cursor = db.products.find({"category": category})
     res = []
-    for prod in catalog:
-        category = prod["category"]
-        if not category in res:
-            res.append(category)
+    for prod in cursor:
+        prod["_id"] = str(prod["_id"])
+        res.append(prod)
 
     return json.dumps(res)
 
